@@ -1,0 +1,122 @@
+# bash pathtools:  tools for manipulating and maintaining path environment variables
+#
+# Copyright (c) 2010 Erik Erlandson
+#
+# Author:  Erik Erlandson <erikerlandson@yahoo.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+vval() {
+    local cmd="echo \$$1"
+    eval $cmd
+}
+
+rmpathstr() {
+    local p="$1"
+    local s="$2"
+    local d="$3"
+    if [ -z "$d" ]; then d=":"; fi
+    echo "$p" | tr "$d" '\n' | grep -v -x "$s" | tr '\n' "$d" | sed "s/$d\$//"
+}
+
+inpathstr() {
+    local p="$1"
+    local s="$2"
+    local d="$3"
+    if [ -z "$d" ]; then d=":"; fi
+    local t=`echo "$p" | tr "$d" '\n' | grep -x "$s"`
+    if [ -z "$t" ]; then echo "false"; else echo "true"; fi
+}
+
+# inpath <path> [<path-var> [<path-delim>]]
+# returns "true" if <path> is in <path-var>, wrt delimiter <path-delim>
+# <path-var> defaults to 'PATH'
+# <path-delim> defaults to ':'
+inpath() {
+    local p="$1"
+    local v="$2"
+    local d="$3"
+    if [ -z "$v" ]; then v="PATH"; fi
+    if [ -z "$d" ]; then d=":"; fi
+    local vv=`vval "$v"`
+    inpathstr "$vv" "$p" "$d"
+}
+
+# rmpath <path> [<path-var> [<path-delim>]]
+# remove all occurrences of <path> from <path-var>, assuming 
+# delimiter <path-delim>
+# <path-var> defaults to 'PATH'
+# <path-delim> defaults to ':'
+rmpath() {
+    local p="$1"
+    local v="$2"
+    local d="$3"
+    if [ -z "$v" ]; then v="PATH"; fi
+    if [ -z "$d" ]; then d=":"; fi
+    local vv=`vval "$v"`
+    export "$v"=`rmpathstr "$vv" "$p" "$d"`
+}
+
+# sfpath <path> [<path-var> [<path-delim>]]
+# place <path> at front of <path-var>, assuming delimiter <path-delim>
+# any other occurrences of <path> are removed
+# <path-var> defaults to 'PATH'
+# <path-delim> defaults to ':'
+sfpath() {
+    local p="$1"
+    local v="$2"
+    local d="$3"
+    if [ -z "$v" ]; then v="PATH"; fi
+    if [ -z "$d" ]; then d=":"; fi
+    rmpath "$p" "$v" "$d"
+    local vv=`vval "$v"`
+    if [ -z "$vv" ]; then export "$v"="$p"; else export "$v"="$p$d$vv"; fi
+}
+
+# sbpath <path> [<path-var> [<path-delim>]]
+# place <path> at back of <path-var>, assuming delimiter <path-delim>
+# any other occurrences of <path> are removed
+# <path-var> defaults to 'PATH'
+# <path-delim> defaults to ':'
+sbpath() {
+    local p="$1"
+    local v="$2"
+    local d="$3"
+    if [ -z "$v" ]; then v="PATH"; fi
+    if [ -z "$d" ]; then d=":"; fi
+    rmpath "$p" "$v" "$d"
+    local vv=`vval "$v"`
+    if [ -z "$vv" ]; then export "$v"="$p"; else export "$v"="$vv$d$p"; fi
+}
+
+
+# rrpath [<path-var> [<path-delim>]]
+# remove redundancies from <path-var>, assuming delimiter <path-delim>
+# <path-var> defaults to 'PATH'
+# <path-delim> defaults to ':'
+rrpath() {
+    local v="$1"
+    local d="$2"
+    if [ -z "$v" ]; then v="PATH"; fi
+    if [ -z "$d" ]; then d=":"; fi
+    local vv=`vval "$v"`
+    local rrv="_RRPATH_$v"
+    export "$rrv"=""
+    local p
+    for p in `echo "$vv" | tr "$d" " "`; do
+        if [ "false" = `inpath "$p" "$rrv" "$d"` ]; then sbpath "$p" "$rrv" "$d"; fi
+    done
+    local nv=`vval "$rrv"`
+    export "$v"="$nv"
+    unset "$rrv"
+}

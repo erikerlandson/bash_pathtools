@@ -1,0 +1,91 @@
+============
+INTRODUCTION
+============
+bash pathtools are some bash functions for manipulating and managing unix paths.  Some uses are:
+* keeping path variables clean and free of redundancies
+* placing paths at beginning or end of a path list, without adding duplicate path entries to a path variable
+* easily removing all occurrences of a path from a path variable
+* ability to cleanly put path additions and manipulations into ".bashrc", where they become immediately available to new windows, as opposed to ".bash_profile" where re-login may be necessary.
+
+============
+INSTALLATION
+============
+To install bash pathtools, copy the file 'bash_pathtools' to your home directory, and then add the following line to your .bashrc file:
+
+if [ -f ~/bash_pathtools ]; then . ~/bash_pathtools; fi
+
+=============
+DOCUMENTATION
+=============
+The pathtool functions provided are:
+
+* inpath <path> [<path-var> [<path-delim>]] 
+      o returns "true" if <path> is in <path-var>, wrt delimiter <path-delim>
+      o <path-var> defaults to 'PATH'
+      o <path-delim> defaults to ':' 
+* rmpath <path> [<path-var> [<path-delim>]] 
+      o remove all occurrences of <path> from <path-var>, assuming
+      o delimiter <path-delim>
+      o <path-var> defaults to 'PATH'
+      o <path-delim> defaults to ':' 
+* rrpath [<path-var> [<path-delim>]] 
+      o remove redundancies from <path-var>, assuming delimiter <path-delim>
+      o <path-var> defaults to 'PATH'
+      o <path-delim> defaults to ':' 
+* sfpath <path> [<path-var> [<path-delim>]] 
+      o place <path> at front of <path-var>, assuming delimiter <path-delim>
+      o any other occurrences of <path> are removed
+      o <path-var> defaults to 'PATH'
+      o <path-delim> defaults to ':' 
+* sbpath <path> [<path-var> [<path-delim>]]
+      o place <path> at back of <path-var>, assuming delimiter <path-delim>
+      o any other occurrences of <path> are removed
+      o <path-var> defaults to 'PATH'
+      o <path-delim> defaults to ':' 
+
+========
+EXAMPLES
+========
+# tr,grep and sed need to be in the path for tools to work
+% export PATH=/usr/bin:/bin
+
+# inpath tells you if a path is in your path variable
+% inpath /bin
+true
+% inpath /foo
+false
+
+# here is a path with redundant "/foo"
+% export PATH=/foo:$PATH:/foo:/bar
+% echo $PATH
+/foo:/usr/bin:/bin:/foo:/bar
+
+# rrpath removes redundancies, and preserves 1st instance of each path
+% rrpath
+% echo $PATH
+/foo:/usr/bin:/bin:/bar
+
+# rmpath removes all occurrences of each path
+% rmpath /bar
+% echo $PATH
+/foo:/usr/bin:/bin
+
+# add more redundancies
+% export PATH=$PATH:/foo:/bar:/bar:/foo
+% echo $PATH
+/foo:/usr/bin:/bin:/foo:/bar:/bar:/foo
+
+# another invocation of rrpath
+% rrpath
+% echo $PATH
+/foo:/usr/bin:/bin:/bar
+
+# sfpath moves a path to front of path list
+% sfpath /bar
+% echo $PATH
+/bar:/foo:/usr/bin:/bin
+
+# sbpath moves a path to back of path list
+% sbpath /foo
+% echo $PATH
+/bar:/usr/bin:/bin:/foo
